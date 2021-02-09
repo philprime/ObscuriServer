@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "JSONOverTCP",
+        "repositoryURL": "git@bitbucket.org:techprimate/jsonovertcp.git",
+        "state": {
+          "branch": null,
+          "revision": "46ef334a6d58c4c8c94153b6969f0ad2382ab913",
+          "version": "0.0.1"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
