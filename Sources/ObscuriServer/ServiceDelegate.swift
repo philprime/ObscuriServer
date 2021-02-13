@@ -1,7 +1,6 @@
 import Foundation
 import os.log
 
-@available(OSX 10.12, *)
 class ServiceDelegate: NSObject, NetServiceDelegate {
 
     // MARK: - Services

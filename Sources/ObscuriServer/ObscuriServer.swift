@@ -7,16 +7,22 @@ public class ObscuriServer {
 
     // MARK: - Services
 
-    private let connectionManager = ConnectionManager()
+    private lazy var connectionManager: ConnectionManager = {
+        let manager = ConnectionManager()
+        manager.delegate = self
+        return manager
+    }()
     private let logger = OSLog(subsystem: LoggingConfig.identifier, category: String(describing: ObscuriServer.self))
 
     // MARK: - Properties
+
+    public weak var delegate: ObscuriServerDelegate?
 
     private let serviceId: String
     private let serviceName: String
     private let service: NetService
     private lazy var serviceDelegate: ServiceDelegate = {
-        return ServiceDelegate(serviceId: serviceId, serviceName: serviceName, manager: connectionManager)
+        ServiceDelegate(serviceId: serviceId, serviceName: serviceName, manager: connectionManager)
     }()
 
     // MARK: - Intializer
@@ -24,7 +30,7 @@ public class ObscuriServer {
     public init(serviceId: String = UUID().uuidString, serviceName: String) {
         self.serviceId = serviceId
         self.serviceName = serviceName
-        service = NetService(domain: "local", type: "_Obscuri._tcp", name: serviceName, port: 0)
+        service = NetService(domain: "local", type: "_obscuri._tcp", name: serviceName, port: 0)
         service.delegate = serviceDelegate
 
         let txtRecord = [
@@ -72,5 +78,18 @@ public class ObscuriServer {
 
     public func stop() {
         service.stop()
+    }
+}
+
+// MARK: - ConnectionManagerDelegate
+
+extension ObscuriServer: ConnectionManagerDelegate {
+
+    func connectionManager(_ connectionManager: ConnectionManager, didAddConnection connection: Connection) {
+        delegate?.obscuriServerDidAddConnection(self)
+    }
+
+    func connectionManager(_ connectionManager: ConnectionManager, didCloseConnection connection: Connection) {
+        delegate?.obscuriServerDidCloseConnection(self)
     }
 }

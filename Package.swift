@@ -3,6 +3,9 @@ import PackageDescription
 
 let package = Package(
     name: "ObscuriServer",
+    platforms: [
+        .macOS(.v10_12), .iOS(.v10)
+    ],
     products: [
         .library(name: "ObscuriServer", targets: ["ObscuriServer"]),
     ],
