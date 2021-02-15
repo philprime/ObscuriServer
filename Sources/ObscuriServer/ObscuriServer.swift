@@ -14,7 +14,6 @@ public class ObscuriServer {
         manager.delegate = self
         return manager
     }()
-    private let logger = OSLog(subsystem: LoggingConfig.identifier, category: String(describing: ObscuriServer.self))
 
     // MARK: - Properties
 
@@ -32,12 +31,14 @@ public class ObscuriServer {
 
         // Inform user about service name limitations
         if serviceName.contains(".") {
-            os_log("Attention: the service name contains a dot which is usually used for declaring subdomains. This might lead to issues during discovery!", log: logger, type: .info)
+            os_log("Attention: the service name contains a dot which is usually used for declaring subdomains. This might lead to issues during discovery!", log: .obscuri, type: .info)
         }
 
         let parameters = ObscuriServer.getTLSParameters(allowInsecure: true, queue: .obscuriQueue)
         listener = try NWListener(using: parameters)
-        listener.service = NWListener.Service(name: serviceName, type: ObscuriDefinition.serviceType, domain: ObscuriDefinition.serviceDomain, txtRecord: txtRecordData)
+        let  service = NWListener.Service(name: serviceName, type: ObscuriDefinition.serviceType, domain: ObscuriDefinition.serviceDomain, txtRecord: txtRecordData)
+        listener.service = service
+
         listener.stateUpdateHandler = self.didUpdateState(to:)
         listener.newConnectionHandler = self.didAcceptNetwork(connection:)
         listener.serviceRegistrationUpdateHandler = self.didUpdateServiceRegistration(change:)
@@ -46,80 +47,81 @@ public class ObscuriServer {
     private func didUpdateState(to newState: NWListener.State) {
         switch newState {
         case .ready:
-            os_log("listener is ready", log: self.logger, type: .info)
+            os_log("listener is ready", log: .obscuri, type: .info)
         case .failed(let error):
             // If the listener fails, re-start.
             if error == NWError.dns(DNSServiceErrorType(kDNSServiceErr_DefunctConnection)) {
-                os_log("listener failed with error: %@, restarting", log: self.logger, type: .error, error.localizedDescription)
+                os_log("listener failed with error: %@, restarting", log: .obscuri, type: .error, error.localizedDescription)
                 self.stop()
                 self.start()
             } else {
-                os_log("listener failed with error: %@, stopping", log: self.logger, type: .error, error.localizedDescription)
+                os_log("listener failed with error: %@, stopping", log: .obscuri, type: .error, error.localizedDescription)
                 self.stop()
             }
         case .cancelled:
-            os_log("listener cancelled", log: self.logger, type: .info)
+            os_log("listener cancelled", log: .obscuri, type: .info)
         default:
             break
         }
     }
 
     private func didAcceptNetwork(connection: NWConnection) {
-        os_log("listener received new connection: %@", log: self.logger, type: .info, connection.debugDescription)
+        os_log("listener received new connection: %@", log: .obscuri, type: .info, connection.debugDescription)
         self.connectionManager.add(connection: connection)
     }
 
     private func didUpdateServiceRegistration(change: NWListener.ServiceRegistrationChange) {
         switch change {
         case .add(let endpoint):
-            os_log("listener added endpoint: %@", log: self.logger, type: .info, endpoint.debugDescription)
+            os_log("listener added endpoint: %@", log: .obscuri, type: .info, endpoint.debugDescription)
         case .remove(let endpoint):
-            os_log("listener removed endpoint: %@", log: self.logger, type: .info, endpoint.debugDescription)
+            os_log("listener removed endpoint: %@", log: .obscuri, type: .info, endpoint.debugDescription)
         @unknown default:
-            os_log("listener received unknown update: %@", log: self.logger, type: .error, String(describing: change))
+            os_log("listener received unknown update: %@", log: .obscuri, type: .error, String(describing: change))
         }
     }
 
     fileprivate static func getTLSParameters(allowInsecure: Bool, queue: DispatchQueue) -> NWParameters {
-        let options = NWProtocolTLS.Options()
-
-        sec_protocol_options_set_verify_block(options.securityProtocolOptions, { (sec_protocol_metadata, sec_trust, sec_protocol_verify_complete) in
-            let trust = sec_trust_copy_ref(sec_trust).takeRetainedValue()
-            var error: CFError?
-            if SecTrustEvaluateWithError(trust, &error) {
-                sec_protocol_verify_complete(true)
-            } else {
-                if allowInsecure {
-                    sec_protocol_verify_complete(true)
-                } else {
-                    sec_protocol_verify_complete(false)
-                }
-            }
-        }, queue)
-
-        return NWParameters(tls: options)
+        NWParameters.tcp
+//        let options = NWProtocolTLS.Options()
+//
+//        sec_protocol_options_set_verify_block(options.securityProtocolOptions, { (sec_protocol_metadata, sec_trust, sec_protocol_verify_complete) in
+//            let trust = sec_trust_copy_ref(sec_trust).takeRetainedValue()
+//            var error: CFError?
+//            if SecTrustEvaluateWithError(trust, &error) {
+//                sec_protocol_verify_complete(true)
+//            } else {
+//                if allowInsecure {
+//                    sec_protocol_verify_complete(true)
+//                } else {
+//                    sec_protocol_verify_complete(false)
+//                }
+//            }
+//        }, queue)
+//
+//        return NWParameters(tls: options)
     }
 
     public func start() {
-        os_log("starting server", log: logger, type: .info)
+        os_log("starting server", log: .obscuri, type: .info)
         listener.start(queue: .obscuriQueue)
     }
 
     public func send<T: Codable>(_ object: T) throws {
         if connectionManager.connectionsById.isEmpty {
-            os_log("no open connections found, not sending data", log: logger, type: .debug)
+            os_log("no open connections found, not sending data", log: .obscuri, type: .debug)
             return
         }
-        os_log("sending object %@", log: logger, type: .info, String(describing: object))
+        os_log("sending object %@", log: .obscuri, type: .info, String(describing: object))
         let payloadData = try JSONEncoder().encode(object)
         let packet = JSONOverTCPPacket(data: payloadData)
         let data = try packet.encode()
         for connection in connectionManager.connectionsById.values {
             connection.networkConnection.send(content: data, completion: .contentProcessed({ error in
                 if let error = error {
-                    os_log("writing data to connection %@ failed, reason: %@", log: self.logger, type: .debug, data.count, connection.id, error.localizedDescription)
+                    os_log("writing data to connection %@ failed, reason: %@", log: .obscuri, type: .debug, connection.id, error.localizedDescription)
                 } else {
-                    os_log("writing data to connection %@ successful", log: self.logger, type: .debug, data.count, connection.id)
+                    os_log("writing data to connection %@ successful", log: .obscuri, type: .debug, connection.id)
                 }
             }))
         }
@@ -138,6 +140,7 @@ public class ObscuriServer {
             "sf": "1", // discoverable
             "ff": "0", // mfi compliant
             "md": serviceName, // name
+            "peerID": "123",
         ]
         return NetService.data(fromTXTRecord: txtRecord.mapValues {
             $0.data(using: .utf8)!

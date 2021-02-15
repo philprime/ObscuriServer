@@ -2,14 +2,13 @@ import Foundation
 import os.log
 import Combine
 import Network
+import ObscuriCore
 
 class ConnectionManager {
 
     // MARK: - Services
 
     weak var delegate: ConnectionManagerDelegate?
-
-    private let logger = OSLog(subsystem: LoggingConfig.identifier, category: String(describing: ConnectionManager.self))
 
     // MARK: - Properties
 
@@ -29,23 +28,23 @@ class ConnectionManager {
 
     func add(connection: NWConnection) {
         let con = Connection(networkConnection: connection)
-        os_log("adding connection with id %@", log: logger, type: .debug, con.id)
+        os_log("adding connection with id %@", log: .obscuri, type: .debug, con.id)
         connectionsById[con.id] = con
         connection.stateUpdateHandler = { state in
             switch state {
             case .preparing:
-                os_log("connection %@ is begin established", log: self.logger, type: .info, con.id)
+                os_log("connection %@ is begin established", log: .obscuri, type: .info, con.id)
             case .setup:
-                os_log("connection %@ is initialized", log: self.logger, type: .info, con.id)
+                os_log("connection %@ is initialized", log: .obscuri, type: .info, con.id)
             case .ready:
-                os_log("connection %@ is ready for communication", log: self.logger, type: .info, con.id)
+                os_log("connection %@ is ready for communication", log: .obscuri, type: .info, con.id)
             case .failed(let error):
-                os_log("connection %@ failed, reason: %@", log: self.logger, type: .info, con.id, error.localizedDescription)
+                os_log("connection %@ failed, reason: %@", log: .obscuri, type: .info, con.id, error.localizedDescription)
                 self.close(connection: con)
             case .waiting(let error):
-                os_log("connection %@ is waiting, reason: %@", log: self.logger, type: .info, con.id, error.localizedDescription)
+                os_log("connection %@ is waiting, reason: %@", log: .obscuri, type: .info, con.id, error.localizedDescription)
             case .cancelled:
-                os_log("connection %@ cancelled", log: self.logger, type: .info, con.id)
+                os_log("connection %@ cancelled", log: .obscuri, type: .info, con.id)
                 self.close(connection: con)
             default:
                 break
@@ -56,7 +55,7 @@ class ConnectionManager {
     }
 
     func close(connection: Connection) {
-        os_log("closing connection with id %@", log: logger, type: .debug, connection.id)
+        os_log("closing connection with id %@", log: .obscuri, type: .debug, connection.id)
         connection.networkConnection.cancel()
         connectionsById.removeValue(forKey: connection.id)
         connection.networkConnection.cancel()
