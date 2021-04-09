@@ -1,6 +1,6 @@
 import Foundation
 import os.log
-import JSONOverTCP
+import SwiftyJSONOverTCP
 import Network
 import ObscuriCore
 
@@ -114,7 +114,7 @@ public class ObscuriServer {
         }
         os_log("sending object %@", log: .obscuri, type: .info, String(describing: object))
         let payloadData = try JSONEncoder().encode(object)
-        let packet = JSONOverTCPPacket(data: payloadData)
+        let packet = JOTPacket(data: payloadData)
         let data = try packet.encode()
         for connection in connectionManager.connectionsById.values {
             connection.networkConnection.send(content: data, completion: .contentProcessed({ error in

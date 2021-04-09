@@ -11,13 +11,13 @@ let package = Package(
         .library(name: "ObscuriServer", targets: ["ObscuriServer"]),
     ],
     dependencies: [
-        .package(name: "JSONOverTCP", url: "git@bitbucket.org:techprimate/jsonovertcp.git", .upToNextMajor(from: "0.0.1"))
+        .package(name: "SwiftyJSONOverTCP", url: "https://github.com/philprime/SwiftyJSONOverTCP.git", .upToNextMajor(from: "0.0.1"))
     ],
     targets: [
         .target(name: "ObscuriCore"),
         .target(name: "ObscuriServer", dependencies: [
             "ObscuriCore",
-            "JSONOverTCP"
+            "SwiftyJSONOverTCP"
         ], resources: [
             .copy("Resources/server.crt"),
             .copy("Resources/server.key"),

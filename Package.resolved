@@ -2,11 +2,11 @@
   "object": {
     "pins": [
       {
-        "package": "JSONOverTCP",
-        "repositoryURL": "git@bitbucket.org:techprimate/jsonovertcp.git",
+        "package": "SwiftyJSONOverTCP",
+        "repositoryURL": "https://github.com/philprime/SwiftyJSONOverTCP.git",
         "state": {
           "branch": null,
-          "revision": "46ef334a6d58c4c8c94153b6969f0ad2382ab913",
+          "revision": "ab206ce2d56b223ef4a1413be3521fdc4c7d01aa",
           "version": "0.0.1"
         }
       }
